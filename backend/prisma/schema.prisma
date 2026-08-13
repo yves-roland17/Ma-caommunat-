@@ -1,0 +1,223 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+enum Role{
+  ETUDIANT
+  ADMIN
+}
+
+enum Status{
+ ACTIVATE
+ HIDDEN
+ DESACTIVATE
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String
+  posts Post[]
+  avatarUrl String?
+  bio String?
+  token_hash String?
+  password String
+  role Role @default(ETUDIANT)
+  comments Comment[]
+  reactions Reaction[]
+  groupe Group[]
+  GroupMembership GroupMembership[]
+  GroupMessage GroupMessage[]
+  Notification Notification[]
+  Document Document[]
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  imageUrl String?
+  status    Status   @default(ACTIVATE)
+  author    User    @relation(fields: [authorId], references: [id])
+  authorId  Int
+  comments  Comment[]
+  reactions Reaction[]
+  Document Document[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  postId    Int?
+  post      Post?    @relation(fields: [postId], references: [id])
+
+  reactions Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  type      ReactionType @default(LIKE)
+  createdAt DateTime @default(now())
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  postId    Int?
+  post      Post?    @relation(fields: [postId], references: [id])
+
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id])
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+}
+
+  model Group{
+    id        Int      @id @default(autoincrement())
+    name      String
+    description String?
+    imageUrl String?
+    creator User   @relation(fields: [creatorId], references: [id])
+    creatorId Int
+    GroupMembership GroupMembership[]
+    GroupMessage GroupMessage[]
+    @@map("groups")
+  }
+
+  model GroupMembership{
+    id        Int      @id @default(autoincrement())
+    joinedAt  DateTime @default(now())
+    user      User     @relation(fields: [userId], references: [id])
+    userId    Int
+    group     Group    @relation(fields: [groupId], references: [id])
+    groupId   Int
+    role     GroupRole @default(MEMBER)
+
+    @@unique([groupId, userId])
+    @@map("group_memberships")
+  }
+
+  enum GroupRole{
+    MEMBER
+    MODERATOR
+  }
+
+  model GroupMessage{
+    id        Int      @id @default(autoincrement())
+    content   String
+    createdAt DateTime @default(now())
+    user      User     @relation(fields: [userId], references: [id])
+    userId    Int
+    group     Group    @relation(fields: [groupId], references: [id])
+    groupId   Int
+    documents Document[]
+
+  @@index([groupId])
+  @@map("group_messages")
+
+  }
+
+enum ReactionType {
+  LIKE
+  LOVE
+  CELEBRATE
+}
+
+enum AnnouncementType {
+  STAGE
+  EMPLOI
+  AUTRE
+}
+
+enum NotificationType {
+  POST_LIKE
+  POST_COMMENT
+  COMMENT_REACTION
+  GROUP_MESSAGE
+  GROUP_INVITE
+  GROUP_ROLE_CHANGE
+  CONTENT_MODERATED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  content   String
+  isRead    Boolean          @default(false)
+  relatedId String? // id du post/message/groupe concerné, selon le type
+  createdAt DateTime         @default(now())
+  userId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Annonce {
+  id          String             @id @default(uuid())
+  title       String
+  description String
+  compagnie    String?
+  location    String?
+  type        AnnounceType   @default(AUTRE)
+  status      AnnouncementStatus @default(ACTIVE)
+
+  provider    String // ex: "JOOBLE"
+  externalId  String // identifiant de l'offre chez le fournisseur, pour éviter les doublons
+  externalUrl String // lien vers l'offre originale pour postuler
+
+  fetchedAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@unique([provider, externalId])
+  @@index([status])
+  @@map("announcements")
+}
+
+
+model Document {
+  id        String   @id @default(uuid())
+  filename  String
+  fileKey   String // clé de l'objet dans le bucket MinIO
+  fileType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  uploaderId Int
+  uploader   User   @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  postId Int?
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  groupMessageId Int?
+  groupMessage   GroupMessage? @relation(fields: [groupMessageId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+enum AnnounceType {
+  STAGE
+  EMPLOI
+  AUTRE
+}
+
+enum AnnouncementStatus {
+  ACTIVE
+  EXPIRED
+  HIDDEN
+}
