@@ -205,17 +205,8 @@ ma-communaute/
 
 > `Report` (signalement) est repoussé en **v2** — la modération v1 se fait uniquement via le champ `status` et l'interface d'administration.
 
----
 
-## ⚠️ Points encore ouverts à trancher
 
-1. **Socket.io vs WebSocket natif** côté NestJS (Socket.io recommandé pour le MVP : reconnexion auto, rooms par groupe).
-2. **Jest vs Vitest** : confirmer la répartition (Jest backend / Vitest frontend) ou choisir un seul outil.
-3. **Structure des buckets MinIO** (public vs privé + URLs signées) et taille max par fichier à définir précisément.
-4. **Portée exacte du rôle modérateur de groupe** : quelles actions précises peut-il effectuer (supprimer un message, exclure un membre, etc.) ?
-5. **Scalabilité WebSocket** : prévoir un adapter Redis si déploiement multi-instances sur Railway à terme.
-
----
 
 ## 🚀 Vision
 
